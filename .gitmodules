@@ -1,0 +1,9 @@
+[submodule "roles/ansible-role-umd"]
+	path = roles/ansible-role-umd
+	url = https://github.com/EGI-Foundation/ansible-role-umd
+[submodule "roles/ansible-role-pkgrepo-validator"]
+	path = roles/ansible-role-pkgrepo-validator
+	url = https://github.com/indigo-dc/ansible-role-pkgrepo-validator
+[submodule "roles/ansible-release-candidate"]
+	path = roles/ansible-release-candidate
+	url = https://github.com/egi-qc/ansible-release-candidate

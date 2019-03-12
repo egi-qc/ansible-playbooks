@@ -1,0 +1,14 @@
+---
+- hosts: localhost
+  roles:
+    - ansible-role-umd
+    - ansible-role-pkgrepo-validator
+  vars:
+    release: 4
+    repository:
+      - UMD-4-base
+      - UMD-4-updates 
+    excluded_pkgs_file: 
+      - "./roles/ansible-release-candidate/roles/release-candidate/files/conflict.pkgs"
+      - "./roles/ansible-release-candidate/roles/release-candidate/files/exclude.pkgs"
+
