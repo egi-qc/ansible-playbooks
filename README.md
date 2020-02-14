@@ -32,6 +32,18 @@ stage('Validation on CentOS7') {
 }
 ```
 
+## jenkins-docker-slave.yml
+
+Deploys a Docker slave for Jenkins:
+
+- Connection through SSH
+- SSH user: `jenkins`
+
+_The playbook requires the SSH public key of Jenkins user as input_. An example:
+```
+ansible-playbook jenkins-docker-slave.yml --extra-vars "jenkins_sshkey_pub='ssh-rsa ..'"
+```
+
 # How to contribute
  - Playbooks (`.yml`): must be added at the repository's root path.
  - Role dependencies: must be added in the `roles` directory as Git submodules.
