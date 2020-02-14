@@ -8,7 +8,7 @@
         name: docker
   vars:
     do_install: false
-    pkgs_uninstall:
+    pkgs_docker_uninstall:
       - docker
       - docker-engine
       - docker.io
@@ -20,7 +20,7 @@
       - curl
       - gnupg-agent
       - software-properties-common
-    pkgs_install:
+    pkgs_docker_install:
       - docker-ce
       - docker-ce-cli
       - containerd.io
@@ -35,7 +35,7 @@
 
     - name: Uninstall older versions of Docker
       package:
-        name: "{{ pkgs_uninstall }}"
+        name: "{{ pkgs_docker_uninstall }}"
         state: absent
       when: do_install
 
@@ -63,7 +63,7 @@
 
     - name: Install latest version of Docker Engine
       apt:
-        name: "{{ pkgs_install }}"
+        name: "{{ pkgs_docker_install }}"
         state: present
         update_cache: yes
       when: ansible_facts['os_family'] == "Debian"
