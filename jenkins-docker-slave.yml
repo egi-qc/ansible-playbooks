@@ -73,9 +73,18 @@
         name: docker
         state: present
 
+    - name: Ensure systemd docker config dir is present
+      file:
+        state: directory
+        path: /etc/systemd/system/docker.service.d
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
+
     - name: Ensure Docker daemon listens on tcp
       lineinfile:
         path: /etc/systemd/system/docker.service.d/override.conf
+        create: yes
         insertafter: "^ExecStart=$"
         line: "ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375"
       notify:
