@@ -24,8 +24,16 @@
       - docker-ce
       - docker-ce-cli
       - containerd.io
+    pkgs_jenkins_install:
+      - openjdk-11-jdk
+      - openjdk-11-jre
     pkgs_schema4deep:
       - python3-pip
+    systemd_docker: |
+      [Service]
+      ExecStart=
+      ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375
+
   tasks:
     - name: Check if expected variables are defined
       assert:
@@ -82,11 +90,9 @@
         mode: '0755'
 
     - name: Ensure Docker daemon listens on tcp
-      lineinfile:
-        path: /etc/systemd/system/docker.service.d/override.conf
-        create: yes
-        insertafter: "^ExecStart=$"
-        line: "ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375"
+      copy:
+        content: "{{ systemd_docker }}"
+        dest: /etc/systemd/system/docker.service.d/override.conf
       notify:
         - systemd reload docker
 
@@ -95,6 +101,11 @@
         name: docker
         state: started
         enabled: yes
+
+    - name: Install Jenkins dependencies
+      package:
+        name: "{{ pkgs_jenkins_install }}"
+        state: present
 
     - name: Create jenkins group
       group:
