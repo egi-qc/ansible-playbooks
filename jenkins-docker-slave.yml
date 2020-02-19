@@ -26,6 +26,8 @@
       - containerd.io
     pkgs_schema4deep:
       - python3-pip
+    pkgs_misc:
+      - maven
   tasks:
     - name: Check if expected variables are defined
       assert:
@@ -122,4 +124,10 @@
       pip:
         name: git+https://github.com/deephdc/schema4apps
         executable: pip3
+
+    - name: Install misc dependencies
+      package:
+        name: "{{ pkgs_misc }}"
+        state: present
+
 
