@@ -8,7 +8,7 @@
         name: docker
   vars:
     do_install: false
-    pkgs_uninstall:
+    pkgs_docker_uninstall:
       - docker
       - docker-engine
       - docker.io
@@ -20,14 +20,22 @@
       - curl
       - gnupg-agent
       - software-properties-common
-    pkgs_install:
+    pkgs_docker_install:
       - docker-ce
       - docker-ce-cli
       - containerd.io
+    pkgs_jenkins_install:
+      - openjdk-11-jdk
+      - openjdk-11-jre
     pkgs_schema4deep:
       - python3-pip
     pkgs_misc:
       - maven
+    systemd_docker: |
+      [Service]
+      ExecStart=
+      ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375
+
   tasks:
     - name: Check if expected variables are defined
       assert:
@@ -37,7 +45,7 @@
 
     - name: Uninstall older versions of Docker
       package:
-        name: "{{ pkgs_uninstall }}"
+        name: "{{ pkgs_docker_uninstall }}"
         state: absent
       when: do_install
 
@@ -65,7 +73,7 @@
 
     - name: Install latest version of Docker Engine
       apt:
-        name: "{{ pkgs_install }}"
+        name: "{{ pkgs_docker_install }}"
         state: present
         update_cache: yes
       when: ansible_facts['os_family'] == "Debian"
@@ -75,11 +83,18 @@
         name: docker
         state: present
 
+    - name: Ensure systemd docker config dir is present
+      file:
+        state: directory
+        path: /etc/systemd/system/docker.service.d
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
+
     - name: Ensure Docker daemon listens on tcp
-      lineinfile:
-        path: /etc/systemd/system/docker.service.d/override.conf
-        insertafter: "^ExecStart=$"
-        line: "ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375"
+      copy:
+        content: "{{ systemd_docker }}"
+        dest: /etc/systemd/system/docker.service.d/override.conf
       notify:
         - systemd reload docker
 
@@ -88,6 +103,11 @@
         name: docker
         state: started
         enabled: yes
+
+    - name: Install Jenkins dependencies
+      package:
+        name: "{{ pkgs_jenkins_install }}"
+        state: present
 
     - name: Create jenkins group
       group:
