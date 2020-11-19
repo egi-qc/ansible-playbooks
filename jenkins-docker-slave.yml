@@ -1,0 +1,153 @@
+- hosts: 127.0.0.1
+  connection: local
+  handlers:
+    - name: systemd reload docker
+      systemd:
+        state: restarted
+        daemon_reload: yes
+        name: docker
+  vars:
+    do_install: false
+    pkgs_docker_uninstall:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+    pkgs_https:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg-agent
+      - software-properties-common
+    pkgs_docker_install:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    pkgs_jenkins_install:
+      - openjdk-11-jdk
+      - openjdk-11-jre
+    pkgs_schema4deep:
+      - python3-pip
+    pkgs_misc:
+      - maven
+    systemd_docker: |
+      [Service]
+      ExecStart=
+      ExecStart=/usr/bin/dockerd -H fd:// -H tcp://0.0.0.0:2375
+
+  tasks:
+    - name: Check if expected variables are defined
+      assert:
+        that:
+          - jenkins_sshkey_pub is defined
+          - jenkins_sshkey_pub is string
+
+    - name: Uninstall older versions of Docker
+      package:
+        name: "{{ pkgs_docker_uninstall }}"
+        state: absent
+      when: do_install
+
+    - name: Allow apt to use repo over HTTPS
+      package:
+        name: "{{ pkgs_https }}"
+        state: present
+
+    - name: Add Docker's official GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Register distribution's codename
+      shell: 'lsb_release -cs'
+      register: distro_code
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Set up Docker's stable repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ distro_code.stdout }} stable"
+        state: present
+      when: ansible_facts['os_family'] == "Debian"
+
+    - name: Install latest version of Docker Engine
+      apt:
+        name: "{{ pkgs_docker_install }}"
+        state: present
+        update_cache: yes
+      when: ansible_facts['os_family'] == "Debian"
+    
+    - name: Create docker group
+      group:
+        name: docker
+        state: present
+
+    - name: Ensure systemd docker config dir is present
+      file:
+        state: directory
+        path: /etc/systemd/system/docker.service.d
+        owner: 'root'
+        group: 'root'
+        mode: '0755'
+
+    - name: Ensure Docker daemon listens on tcp
+      copy:
+        content: "{{ systemd_docker }}"
+        dest: /etc/systemd/system/docker.service.d/override.conf
+      notify:
+        - systemd reload docker
+
+    - name: Enable Docker service in systemd
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Install Jenkins dependencies
+      package:
+        name: "{{ pkgs_jenkins_install }}"
+        state: present
+
+    - name: Create jenkins group
+      group:
+        name: jenkins
+        gid: 1001
+        state: present
+
+    - name: Create jenkins user
+      user:
+        name: jenkins
+        uid: 1001
+        group: jenkins
+        groups: docker
+        home: /jenkins
+        create_home: yes
+        state: present
+
+    - name: Jenkins SSH public key provided
+      debug:
+        var: jenkins_sshkey_pub
+
+    - name: Set Jenkins authorized key
+      authorized_key:
+        user: jenkins
+        state: present
+        key: "{{ jenkins_sshkey_pub }}"
+
+    - name: Install schema4deep dependencies
+      package:
+        name: "{{ pkgs_schema4deep }}"
+        state: present
+
+    - name: Install schema4deep
+      pip:
+        name: git+https://github.com/deephdc/schema4apps
+        executable: pip3
+
+    - name: Install misc dependencies
+      package:
+        name: "{{ pkgs_misc }}"
+        state: present
+
+
